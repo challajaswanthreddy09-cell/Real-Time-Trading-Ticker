@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Advanced Trading Dashboard</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+body{
+    margin:0;
+    font-family: 'Segoe UI', sans-serif;
+    background:#0f172a;
+    color:white;
+}
+
+header{
+    background:#111827;
+    padding:15px;
+    text-align:center;
+    font-size:22px;
+    font-weight:bold;
+}
+
+.container{
+    padding:20px;
+}
+
+.stock-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+    gap:15px;
+}
+
+.stock-card{
+    background:#1e293b;
+    padding:15px;
+    border-radius:10px;
+    text-align:center;
+}
+
+.price{
+    font-size:20px;
+    margin:10px 0;
+}
+
+.up{color:#22c55e;}
+.down{color:#ef4444;}
+
+button{
+    padding:6px 12px;
+    margin:5px;
+    border:none;
+    border-radius:6px;
+    cursor:pointer;
+}
+
+.buy{background:#16a34a;color:white;}
+.sell{background:#dc2626;color:white;}
+
+.alert-section{
+    margin-top:20px;
+    text-align:center;
+}
+
+input{
+    padding:8px;
+    border-radius:6px;
+    border:none;
+    margin-right:5px;
+}
+
+canvas{
+    margin-top:30px;
+    background:#111827;
+    border-radius:10px;
+    padding:10px;
+}
+
+@media(max-width:600px){
+    header{font-size:18px;}
+}
+</style>
+</head>
+
+<body>
+
+<header>📊 Advanced Real-Time Trading Dashboard</header>
+
+<div class="container">
+
+<div class="stock-grid" id="stocks"></div>
+
+<div class="alert-section">
+    <h3>🔔 Set Target Alert</h3>
+    <input type="number" id="targetPrice" placeholder="Enter Target Price">
+    <button onclick="setAlert()">Set Alert</button>
+</div>
+
+<canvas id="chart" height="100"></canvas>
+
+</div>
+
+<audio id="alertSound" src="https://www.soundjay.com/buttons/sounds/beep-01a.mp3"></audio>
+
+<script>
+
+const API_KEY = "YOUR_API_KEY"; // Replace with your Alpha Vantage Key
+const symbols = ["AAPL","TSLA","BTCUSD","EURUSD"];
+
+const stockContainer = document.getElementById("stocks");
+const alertSound = document.getElementById("alertSound");
+
+let target = null;
+let prices = {};
+let chartData = [];
+let labels = [];
+
+symbols.forEach(symbol=>{
+    prices[symbol] = 100;
+});
+
+function renderStocks(){
+    stockContainer.innerHTML="";
+    symbols.forEach(symbol=>{
+        const card = document.createElement("div");
+        card.classList.add("stock-card");
+        card.innerHTML=`
+            <h3>${symbol}</h3>
+            <div class="price" id="${symbol}">${prices[symbol].toFixed(2)}</div>
+            <button class="buy" onclick="trade('${symbol}','BUY')">Buy</button>
+            <button class="sell" onclick="trade('${symbol}','SELL')">Sell</button>
+        `;
+        stockContainer.appendChild(card);
+    });
+}
+
+renderStocks();
+
+// Simulated Live Price Update (Replace with fetchStockPrice for real API)
+setInterval(()=>{
+    symbols.forEach(symbol=>{
+        let change = (Math.random()*4-2);
+        prices[symbol]+=change;
+
+        let el = document.getElementById(symbol);
+        el.innerText = prices[symbol].toFixed(2);
+
+        if(change>0){
+            el.className="price up";
+        }else{
+            el.className="price down";
+        }
+
+        if(target && prices[symbol]>=target){
+            alertSound.play();
+            alert(`Target Reached for ${symbol}!`);
+            target=null;
+        }
+    });
+
+    updateChart(prices[symbols[0]]);
+
+},2000);
+
+// Alert Function
+function setAlert(){
+    target = parseFloat(document.getElementById("targetPrice").value);
+    alert("Alert Set!");
+}
+
+// Buy/Sell
+function trade(symbol,type){
+    alert(`${type} order executed for ${symbol}`);
+}
+
+// Chart Setup
+const ctx=document.getElementById("chart").getContext("2d");
+const chart=new Chart(ctx,{
+    type:"line",
+    data:{
+        labels:labels,
+        datasets:[{
+            label:"AAPL Price",
+            data:chartData,
+            borderColor:"#3b82f6",
+            fill:false
+        }]
+    },
+    options:{
+        responsive:true,
+        plugins:{
+            legend:{labels:{color:"white"}}
+        },
+        scales:{
+            x:{ticks:{color:"white"}},
+            y:{ticks:{color:"white"}}
+        }
+    }
+});
+
+function updateChart(price){
+    if(labels.length>20){
+        labels.shift();
+        chartData.shift();
+    }
+    labels.push(new Date().toLocaleTimeString());
+    chartData.push(price);
+    chart.update();
+}
+
+/* =============================
+   REAL API INTEGRATION EXAMPLE
+   =============================
+
+function fetchStockPrice(symbol){
+fetch(`https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${API_KEY}`)
+.then(res=>res.json())
+.then(data=>{
+let price=parseFloat(data["Global Quote"]["05. price"]);
+prices[symbol]=price;
+});
+}
+
+setInterval(()=>{
+symbols.forEach(fetchStockPrice);
+},15000);
+
+*/
+
+</script>
+
+</body>
+</html>
